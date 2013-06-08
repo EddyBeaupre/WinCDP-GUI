@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<RuleSet Name="Migrated rules for FlexFieldControlLib.ruleset" Description="Cet ensemble de règles a été créé à partir de la propriété CodeAnalysisRules de la configuration &quot;Debug (Any CPU)&quot; du projet &quot;C:\Users\T890060\Documents\Visual Studio 2012\Projects\winCDP-GUI\FlexFieldControlLib\FlexFieldControlLib.csproj&quot;." ToolsVersion="11.0">
+  <IncludeAll Action="Warning" />
+  <Rules AnalyzerId="Microsoft.Analyzers.ManagedCodeAnalysis" RuleNamespace="Microsoft.Rules.Managed">
+    <Rule Id="CA1020" Action="None" />
+  </Rules>
+</RuleSet>

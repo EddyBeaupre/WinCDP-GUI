@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "winCDP-GUI", "winCDP-GUI\winCDP-GUI.csproj", "{BECCDE3E-08C6-48BE-8040-A0CB1ED12D8E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlexFieldControlLib", "FlexFieldControlLib\FlexFieldControlLib.csproj", "{D1BF6ACC-BE80-4478-B715-3CA174CEF119}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BECCDE3E-08C6-48BE-8040-A0CB1ED12D8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BECCDE3E-08C6-48BE-8040-A0CB1ED12D8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BECCDE3E-08C6-48BE-8040-A0CB1ED12D8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BECCDE3E-08C6-48BE-8040-A0CB1ED12D8E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D1BF6ACC-BE80-4478-B715-3CA174CEF119}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D1BF6ACC-BE80-4478-B715-3CA174CEF119}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D1BF6ACC-BE80-4478-B715-3CA174CEF119}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D1BF6ACC-BE80-4478-B715-3CA174CEF119}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
