@@ -19,6 +19,18 @@ namespace winCDP_GUI
             InitializeComponent();
         }
 
+        public string extractSubString(char a, string c)
+        {
+            if (c.IndexOf(a) > 0)
+            {
+                return c.Split(a)[1];
+            }
+            else
+            {
+                return c;
+            }
+        }
+
         private void winCDP_Load(object sender, EventArgs e)
         {
             // Retrieve the device list from the local machine
@@ -37,11 +49,13 @@ namespace winCDP_GUI
 
                 if (device.Description != null)
                 {
-                    adapterList.Items.Add(device.Description.ToString());
+
+                    adapterList.Items.Add(extractSubString('\'', device.Description.ToString()) + " [" + device.Name.ToString().Replace("rpcap://", "") + "]");
+
                 }
                 else
                 {
-                    adapterList.Items.Add(device.Name.ToString());
+                    adapterList.Items.Add(device.Name.ToString().Replace("rpcap://", ""));
                 }
             }
             adapterList.SelectedIndex = 0;
@@ -53,11 +67,11 @@ namespace winCDP_GUI
             int s = -1;
             // IP addresses
             LivePacketDevice device = allDevices[adapterList.SelectedIndex];
-            adapterInfo_Index.Items.Clear();
+            AdapterAddress.Items.Clear();
             foreach (DeviceAddress address in device.Addresses)
             {
                 i++;
-                adapterInfo_Index.Items.Add("Address : " + i.ToString() + " (" + address.Address.Family + ")");
+                AdapterAddress.Items.Add(address.Address.Family.ToString().PadRight(16) + "\t" + address.Address.ToString().Split(' ')[1].ToString());
                 if (s == -1)
                 {
                     if (address.Address.Family == SocketAddressFamily.Internet)
@@ -68,38 +82,11 @@ namespace winCDP_GUI
             }
             if (s == -1)
             {
-                adapterInfo_Index.SelectedIndex = 0;
+                AdapterAddress.SelectedIndex = 0;
             }
             else
             {
-                adapterInfo_Index.SelectedIndex = s - 1;
-            }
-        }
-
-        private void adapterInfo_Index_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            DeviceAddress address = allDevices[adapterList.SelectedIndex].Addresses[adapterInfo_Index.SelectedIndex];
-            switch (address.Address.Family)
-            {
-                case SocketAddressFamily.Internet:
-                    ipV6AddressControl.Visible = false;
-                    defaultAddressControl.Visible = false;
-                    ipV4AddressControl.Visible = true;
-
-                    ipV4AddressControl.Text = address.Address.ToString().Split(' ')[1].ToString();
-                    break;
-                case SocketAddressFamily.Internet6:
-                    defaultAddressControl.Visible = false;
-                    ipV4AddressControl.Visible = false;
-                    ipV6AddressControl.Visible = true;
-                    ipV6AddressControl.Text = address.Address.ToString().Split(' ')[1].ToString();
-                    break;
-                default:
-                    ipV4AddressControl.Visible = false;
-                    ipV6AddressControl.Visible = false;
-                    defaultAddressControl.Visible = true;
-                    defaultAddressControl.Text = address.Address.ToString().Split(' ')[1].ToString();
-                    break;
+                AdapterAddress.SelectedIndex = s - 1;
             }
         }
 
@@ -125,7 +112,7 @@ namespace winCDP_GUI
                     device.communicator.SetFilter(filter);
                 }
                 device.communicator.NonBlocking = false;
-           
+
                 device.communicator.ReceivePackets(1, cdpWorkerObject.PacketHandler);
                 e.Result = device;
             }
@@ -142,7 +129,7 @@ namespace winCDP_GUI
             progressBarWorker.CancelAsync();
             if (device.capturedPacket != null)
             {
-                MessageBox.Show(device.capturedPacket.Timestamp.ToString("yyyy-MM-dd hh:mm:ss.fff") + " length:" + device.capturedPacket.Length);
+                //MessageBox.Show(device.capturedPacket.Timestamp.ToString("yyyy-MM-dd hh:mm:ss.fff") + " length:" + device.capturedPacket.Length);
             }
         }
 
@@ -187,6 +174,11 @@ namespace winCDP_GUI
                 cdpWorkerObject.communicator.Break();
                 MessageBox.Show("Timeout while capturing packets.");
             }
+            else
+            {
+                CDPDecoder cdpDecoder = new CDPDecoder(cdpWorkerObject.capturedPacket);
+                MessageBox.Show("CDP Version : " + cdpDecoder.Version.ToString() + " CDP TTL : " + cdpDecoder.TTL.ToString() + " CDP Checksum : " + cdpDecoder.CheckSum.ToString());
+            }
         }
     }
 }
@@ -202,5 +194,143 @@ public class CDPWorkerObject
     {
         capturedPacket = packet;
     }
+
+}
+
+public class CDPMessage
+{
+    public UInt16 Type { get; private set; }
+    public UInt16 Size { get; private set; }
+    public Byte[] Data { get; private set; }
+
+    public CDPMessage(int pos, Packet packet)
+    {
+        Byte[] data = null;
+
+        Type = (UInt16)((UInt16)(packet[pos++] << 8) | (UInt16)(packet[pos++]));
+        Size = (UInt16)((UInt16)(packet[pos++] << 8) | (UInt16)(packet[pos++]));
+        Array.Resize(ref data, Size + 1);
+
+        for (int i = 0; i < Size - 4; i++)
+        {
+            data[i] = packet[pos++];
+        }
+
+        Data = data;
+    }
+
+    public string typeName()
+    {
+        switch (Type)
+        {
+            case 0x0001:
+                return "Device ID";
+            case 0x0002:
+                return "Addresses";
+            case 0x0003:
+                return "Port ID";
+            case 0x0004:
+                return "Capabilities";
+            case 0x0005:
+                return "Software version";
+            case 0x0006:
+                return "Platform";
+            case 0x0007:
+                return "IP Prefix";
+            case 0x0008:
+                return "Protocol Hello";
+            case 0x0009:
+                return "VTP Domain";
+            case 0x000a:
+                return "Native VLAN";
+            case 0x000b:
+                return "Duplex";
+            case 0x000e:
+                return "VOIP Vlan Reply";
+            case 0x000f:
+                return "VOIP Vlan Query";
+            case 0x0010:
+                return "Power";
+            case 0x0011:
+                return "MTU";
+            case 0x0012:
+                return "Trust Bitmap";
+            case 0x0013:
+                return "Untrusted COS";
+            case 0x0014:
+                return "System Name";
+            case 0x0015:
+                return "System ODI";
+            case 0x0016:
+                return "Management Address";
+            case 0x0017:
+                return "Location";
+            case 0x0018:
+                return "External Port ID";
+            case 0x0019:
+                return "Power Requested";
+            case 0x001a:
+                return "Power Avalable";
+            case 0x001b:
+                return "Port Unidir";
+            case 0x001d:
+                return "NRGYZ";
+            case 0x001f:
+                return "Spare POE";
+            case 0x1003:
+                return "Could someone tell me what this Type is?";
+            default:
+                return "Unknown (" + Type.ToString() + ")";
+        }
+    }
+
+
+}
+
+public class CDPDecoder
+{
+    public Byte Version { get; private set; }
+    public Byte TTL { get; private set; }
+    public UInt16 CheckSum { get; private set; }
+    public CDPMessage[] Data { get; private set; }
+    public Byte CDPMessageCount { get; private set; }
+
+    public CDPDecoder(Packet packet)
+    {
+        CDPMessage[] data = null;
+        int Pos = 22;
+        int Count = 0;
+        Version = packet[Pos++];
+        TTL = packet[Pos++];
+        CheckSum = (UInt16)((UInt16)(packet[Pos++] << 8) | (UInt16)(packet[Pos++]));
+
+        while (Pos < packet.Length)
+        {
+            Array.Resize(ref data, Count + 1);
+            data[Count] = new CDPMessage(Pos, packet);
+            MessageBox.Show("Message #" + Count + ", CDP Message : " + data[Count].typeName() + ", Length : " + data[Count].Size.ToString());
+            Pos = Pos + data[Count].Size;
+            Count++;
+        }
+
+        Data = data;
+    }
+
+    /*
+    public byte cdpVersion()
+    {
+        return cdpPacket.Buffer[0];
+    }
+
+    public byte cdpTTL()
+    {
+        return cdpPacket.Buffer[1];
+    }
+
+    public UInt16 cpdCheckSum()
+    {
+        return (UInt16)((UInt16)(cdpPacket.Buffer[2] << 8) | (UInt16)(cdpPacket.Buffer[3]));
+    }
+    */
 
 }
