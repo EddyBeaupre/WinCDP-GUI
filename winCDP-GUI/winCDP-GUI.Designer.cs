@@ -34,6 +34,7 @@
             this.progressBar = new System.Windows.Forms.ProgressBar();
             this.progressBarWorker = new System.ComponentModel.BackgroundWorker();
             this.AdapterAddress = new System.Windows.Forms.ListBox();
+            this.showResults = new System.Windows.Forms.RichTextBox();
             this.SuspendLayout();
             // 
             // adapterList
@@ -59,7 +60,6 @@
             // cdpCaptureWorker
             // 
             this.cdpCaptureWorker.DoWork += new System.ComponentModel.DoWorkEventHandler(this.cdpCaptureWorker_DoWork);
-            this.cdpCaptureWorker.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.cdpCaptureWorker_ProgressChanged);
             this.cdpCaptureWorker.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.cdpCaptureWorker_RunWorkerCompleted);
             // 
             // progressBar
@@ -81,17 +81,30 @@
             // 
             // AdapterAddress
             // 
+            this.AdapterAddress.BackColor = System.Drawing.SystemColors.AppWorkspace;
             this.AdapterAddress.FormattingEnabled = true;
             this.AdapterAddress.Location = new System.Drawing.Point(13, 40);
             this.AdapterAddress.Name = "AdapterAddress";
             this.AdapterAddress.Size = new System.Drawing.Size(559, 30);
             this.AdapterAddress.TabIndex = 16;
             // 
+            // showResults
+            // 
+            this.showResults.Font = new System.Drawing.Font("Lucida Console", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.showResults.Location = new System.Drawing.Point(13, 77);
+            this.showResults.Name = "showResults";
+            this.showResults.ReadOnly = true;
+            this.showResults.Size = new System.Drawing.Size(557, 244);
+            this.showResults.TabIndex = 17;
+            this.showResults.Text = "";
+            this.showResults.TextChanged += new System.EventHandler(this.showResults_TextChanged);
+            // 
             // winCDP
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(584, 362);
+            this.Controls.Add(this.showResults);
             this.Controls.Add(this.AdapterAddress);
             this.Controls.Add(this.startCapture);
             this.Controls.Add(this.adapterList);
@@ -111,6 +124,7 @@
         private System.Windows.Forms.ProgressBar progressBar;
         private System.ComponentModel.BackgroundWorker progressBarWorker;
         private System.Windows.Forms.ListBox AdapterAddress;
+        private System.Windows.Forms.RichTextBox showResults;
     }
 }
 
