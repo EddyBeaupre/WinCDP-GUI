@@ -10,10 +10,9 @@ namespace winCDP_GUI
 {
     public partial class winCDP : Form
     {
-        private IList<LivePacketDevice> allDevices;
-        protected bool isdone = false;
         protected CDPWorkerObject cdpWorkerObject;
-
+        protected bool isdone = false;
+        private IList<LivePacketDevice> allDevices;
         public winCDP()
         {
             InitializeComponent();
@@ -31,33 +30,11 @@ namespace winCDP_GUI
             }
         }
 
-        private void winCDP_Load(object sender, EventArgs e)
+        public void processCDPPacket(Packet packet)
         {
-            // Retrieve the device list from the local machine
-            allDevices = LivePacketDevice.AllLocalMachine;
-
-            if (allDevices.Count == 0)
-            {
-                MessageBox.Show("No interfaces found! Make sure WinPcap is installed.", "Error", MessageBoxButtons.OK);
-                return;
-            }
-
-            // Print the list
-            for (int i = 0; i != allDevices.Count; ++i)
-            {
-                LivePacketDevice device = allDevices[i];
-
-                if (device.Description != null)
-                {
-                    adapterList.Items.Add(extractSubString('\'', device.Description.ToString()) + " [" + device.Name.ToString().Replace("rpcap://", "") + "]");
-
-                }
-                else
-                {
-                    adapterList.Items.Add(device.Name.ToString().Replace("rpcap://", ""));
-                }
-            }
-            adapterList.SelectedIndex = 0;
+            CDPDecoder cdpDecoder = new CDPDecoder(packet);
+            CDPToText cdpToText = new CDPToText(cdpDecoder.Data);
+            showResults.Text = cdpToText.text;
         }
 
         private void adapterList_SelectedValueChanged(object sender, EventArgs e)
@@ -87,29 +64,6 @@ namespace winCDP_GUI
             {
                 AdapterAddress.SelectedIndex = s - 1;
             }
-        }
-
-        public void processCDPPacket(Packet packet)
-        {
-            CDPDecoder cdpDecoder = new CDPDecoder(packet);
-            CDPToText cdpToText = new CDPToText(cdpDecoder.Data);
-            showResults.Text =cdpToText.text;
-        }
-
-        private void showResults_TextChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void startCapture_Click(object sender, EventArgs e)
-        {
-            progressBar.Value = 0;
-            progressBar.Visible = true;
-            startCapture.Enabled = false;
-            startCapture.Visible = false;
-            cdpCaptureWorker.RunWorkerAsync(new CDPWorkerObject(allDevices[adapterList.SelectedIndex], processCDPPacket));
-            progressBarWorker.WorkerSupportsCancellation = true;
-            progressBarWorker.RunWorkerAsync();
         }
 
         private void cdpCaptureWorker_DoWork(object sender, DoWorkEventArgs e)
@@ -169,17 +123,54 @@ namespace winCDP_GUI
             startCapture.Enabled = true;
             startCapture.Visible = true;
         }
+
+        private void showResults_TextChanged(object sender, EventArgs e)
+        {
+        }
+
+        private void startCapture_Click(object sender, EventArgs e)
+        {
+            progressBar.Value = 0;
+            progressBar.Visible = true;
+            startCapture.Enabled = false;
+            startCapture.Visible = false;
+            cdpCaptureWorker.RunWorkerAsync(new CDPWorkerObject(allDevices[adapterList.SelectedIndex], processCDPPacket));
+            progressBarWorker.WorkerSupportsCancellation = true;
+            progressBarWorker.RunWorkerAsync();
+        }
+
+        private void winCDP_Load(object sender, EventArgs e)
+        {
+            // Retrieve the device list from the local machine
+            allDevices = LivePacketDevice.AllLocalMachine;
+
+            if (allDevices.Count == 0)
+            {
+                MessageBox.Show("No interfaces found! Make sure WinPcap is installed.", "Error", MessageBoxButtons.OK);
+                return;
+            }
+
+            // Print the list
+            for (int i = 0; i != allDevices.Count; ++i)
+            {
+                LivePacketDevice device = allDevices[i];
+
+                if (device.Description != null)
+                {
+                    adapterList.Items.Add(extractSubString('\'', device.Description.ToString()) + " [" + device.Name.ToString().Replace("rpcap://", "") + "]");
+                }
+                else
+                {
+                    adapterList.Items.Add(device.Name.ToString().Replace("rpcap://", ""));
+                }
+            }
+            adapterList.SelectedIndex = 0;
+        }
     }
 }
 
 public class CDPWorkerObject
 {
-    public delegate void CALLBACK(Packet packet);
-    public LivePacketDevice selectedDevice { get; private set; }
-    public PacketCommunicator communicator { get; private set; }
-    public Packet capturedPacket { get; private set; }
-    public CALLBACK callBack { get; private set; }
-    
     public CDPWorkerObject(LivePacketDevice sd, CALLBACK cb)
     {
         selectedDevice = sd;
@@ -188,6 +179,15 @@ public class CDPWorkerObject
         capturedPacket = null;
     }
 
+    public delegate void CALLBACK(Packet packet);
+
+    public CALLBACK callBack { get; private set; }
+
+    public Packet capturedPacket { get; private set; }
+
+    public PacketCommunicator communicator { get; private set; }
+
+    public LivePacketDevice selectedDevice { get; private set; }
     public void captureCDP()
     {
         using (BerkeleyPacketFilter filter = communicator.CreateFilter("ether host 01:00:0c:cc:cc:cc and ether[16:4] = 0x0300000C and ether[20:2] == 0x2000"))
@@ -203,5 +203,4 @@ public class CDPWorkerObject
     {
         capturedPacket = packet;
     }
-
 }

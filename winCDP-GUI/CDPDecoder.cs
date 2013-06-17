@@ -230,15 +230,28 @@ namespace winCDP_GUI
     {
         public string text { get; private set; }
 
-        private string hexDump(byte[] s, int size)
+        private string hexDump(string t, byte[] s, int size, int bpl)
         {
+            int l;
             StringBuilder sb = new StringBuilder();
-            int j=0;
+            StringBuilder st = new StringBuilder();
+
+            l = ("00) " + sb.ToString()).Length;
+            int j = 0;
+
             for (int i = 0; i < size; i++)
             {
                 if (j == 0)
                 {
-                    sb.Append(i.ToString("X2") + ": ");
+                    if (i != 0)
+                    {
+                        sb.Append((i.ToString("X2") + ") ").PadLeft(l, ' '));
+                    }
+                    else
+                    {
+                        sb.Append((i.ToString("X2") + ") "));
+                    }
+                    st.Clear();
                 }
                 else
                 {
@@ -246,25 +259,36 @@ namespace winCDP_GUI
                 }
 
                 sb.Append(s[i].ToString("X2"));
+
+                if (!char.IsControl(Convert.ToChar(s[i])))
+                {
+                    st.Append(Convert.ToChar(s[i]).ToString());
+                }
+                else
+                {
+                    st.Append(".");
+                }
+
                 j++;
 
-                if (j == 8)
+                if (j == bpl)
                 {
                     j = 0;
-                    sb.Append("\n");
+                    sb.Append(" " + st.ToString() + "\n" + t);
                 }
             }
 
             if (j != 0)
             {
-                for (; j < 8; j++)
+                for (; j < bpl; j++)
                 {
                     sb.Append(":--");
+                    st.Append(".");
                 }
-                sb.Append("\n");
+                sb.Append(" " + st.ToString() + "\n");
             }
 
-            
+
             return sb.ToString();
         }
 
@@ -273,10 +297,157 @@ namespace winCDP_GUI
             return (a & b) == b;
         }
 
+        private string byte2IPV6(byte[] s)
+        {
+            int pos = 0;
+            return "IPV6 : " + (s[pos++] << 8 | s[pos++]).ToString("X4") + ":" +
+                (s[pos++] << 8 | s[pos++]).ToString("X4") + ":" +
+                (s[pos++] << 8 | s[pos++]).ToString("X4") + ":" +
+                (s[pos++] << 8 | s[pos++]).ToString("X4") + ":" +
+                (s[pos++] << 8 | s[pos++]).ToString("X4") + ":" +
+                (s[pos++] << 8 | s[pos++]).ToString("X4") + ":" +
+                (s[pos++] << 8 | s[pos++]).ToString("X4") + ":" +
+                (s[pos++] << 8 | s[pos++]).ToString("X4") + ":";
+        }
+
         private string byte2IPV4(byte[] s)
         {
             int pos = 0;
-            return s[pos++].ToString("d") + "." + s[pos++].ToString("d") + "." + s[pos++].ToString("d") + "." + s[pos++].ToString("d");
+            return "IPV4 : " + s[pos++].ToString("d") + "." + s[pos++].ToString("d") + "." + s[pos++].ToString("d") + "." + s[pos++].ToString("d");
+        }
+
+        private string nlpid2String(UInt64 protocol, byte[] address, int address_length)
+        {
+            StringBuilder sb = new StringBuilder();
+            int wrap = 8;
+            if (address_length < 8)
+            {
+                wrap = address_length;
+            }
+            switch (protocol)
+            {
+                case 0x00: // NLPID_NULL
+                    sb.Append(hexDump("NULL : Length : ", address, address_length, wrap));
+                    sb.Append("\n");
+                    break;
+                case 0x08: // NLPID_Q933
+                    sb.Append(hexDump("Q933 : ", address, address_length, wrap));
+                    sb.Append("\n");
+                    break;
+                case 0x80: // NLPID_SNAP
+                    sb.Append(hexDump("SNAP : ", address, address_length, wrap));
+                    sb.Append("\n");
+                    break;
+                case 0x81: // NLPID_CLNP
+                    sb.Append(hexDump("CLPN : ", address, address_length, wrap));
+                    sb.Append("\n");
+                    break;
+                case 0x82: // NLPID_ESIS
+                    sb.Append(hexDump("ESIS : ", address, address_length, wrap));
+                    sb.Append("\n");
+                    break;
+                case 0x83: // NLPID_ISIS				
+                    sb.Append(hexDump("ISIS : ", address, address_length, wrap));
+                    sb.Append("\n");
+                    break;
+                case 0x8E: // NLPID_IPV6
+                    sb.Append(byte2IPV6(address));
+                    sb.Append("\n");
+                    break;
+                case 0xB0: // NLPID_FRF9
+                    sb.Append(hexDump("FRF9 : ", address, address_length, wrap));
+                    sb.Append("\n");
+                    break;
+                case 0xB1: // NLPID_FRF12
+                    sb.Append(hexDump("FRF12 : ", address, address_length, wrap));
+                    sb.Append("\n");
+                    break;
+                case 0xC0: // NLPID_TRILL
+                    sb.Append(hexDump("Trill : ", address, address_length, wrap));
+                    sb.Append("\n");
+                    break;
+                case 0xC1: // NLPID_8021AQ			
+                    sb.Append(hexDump("8021AQ : ", address, address_length, wrap));
+                    sb.Append("\n");
+                    break;
+                case 0xCC: // NLPID_IPV4
+                    sb.Append(byte2IPV4(address));
+                    sb.Append("\n");
+                    break;
+                case 0xCF: // NLPID_PPP			
+                    sb.Append(hexDump("PPP : ", address, address_length, wrap));
+                    sb.Append("\n");
+                    break;
+                default:
+                    sb.Append(hexDump("Unknown type : ", address, address_length, wrap));
+                    sb.Append("\n");
+                    break;
+            }
+            return sb.ToString();
+        }
+
+        private string decodeAddress(string s, byte[] data, int size)
+        {
+            StringBuilder sb = new StringBuilder();
+            int pos = 0;
+            int address_count = 0;
+
+            for (int i = 0; i < 4; i++)
+            {
+                address_count = address_count << 8 | data[pos++];
+            }
+
+            sb.Append(s);
+            while (pos < size)
+            {
+                int type = data[pos++];
+                int len = data[pos++];
+                UInt64 protocol = 0;
+
+                switch (type)
+                {
+                    case 1:
+                        // NLPID Format
+
+                        sb.Append("Protocol format : NLPID\n");
+                        protocol = data[pos++];
+                        break;
+                    case 2:
+                        // 802.2 format
+                        sb.Append("Protocol format : 802.2\n");
+                        for (int i = 0; i < len; i++)
+                        {
+                            protocol = (protocol << 8) | data[pos++];
+                        }
+                        break;
+                    default:
+                        byte[] protHex = null;
+                        Array.Resize(ref protHex, len);
+
+                        for (int i = 0; i < len; i++)
+                        {
+                            protHex[i] = data[pos++];
+                        }
+                        sb.Append(hexDump("Protocol format : Unknown ", protHex, len, 8));
+                        break;
+                }
+
+                if (type != 0)
+                {
+                    int address_length = data[pos++] << 8 | data[pos++];
+                    byte[] address = null;
+
+                    Array.Resize(ref address, address_length);
+
+                    for (int i = 0; i < address_length; i++)
+                    {
+                        address[i] = data[pos++];
+                    }
+
+                    sb.Append(new String(' ', s.Length) + nlpid2String(protocol, address, address_length) + "\n");
+                }
+            }
+            return sb.ToString();
         }
 
         public CDPToText(CDPMessage[] cdpMessages)
@@ -288,258 +459,195 @@ namespace winCDP_GUI
                 switch (cdpMessage.Type)
                 {
                     case 0x0001:
-                        sb.Append("Device ID :\n\t" + Encoding.Default.GetString(cdpMessage.Data, 0, cdpMessage.Size) + "\n\n");
+                        sb.Append("Device ID : " + Encoding.Default.GetString(cdpMessage.Data, 0, cdpMessage.Size) + "\n\n");
 
                         break;
                     case 0x0002:
-                        sb.Append("Addresses :\n");
-                        int pos = 0;
-                        while (pos < cdpMessage.Size)
-                        {
-
-                            int type = cdpMessage.Data[pos++];
-                            int len = cdpMessage.Data[pos++];
-                            //sb.Append(hexDump(cdpMessage.Data, cdpMessage.Size));
-                            //MessageBox.Show("Protocol Type : " + cdpMessage.Type.ToString("X") + ", Length : " + cdpMessage.Size);
-                            switch (type)
-                            {
-                                case 0:
-                                    break;
-                                case 1:
-                                    // NLPID Format
-                                    int protocol = cdpMessage.Data[pos++];
-                                    int address_length = cdpMessage.Data[pos++] << 8 | cdpMessage.Data[pos++];
-                                    byte[] address = null;
-                                    Array.Resize(ref address, address_length);
-                                    for (int i = 0; i < address_length; i++)
-                                    {
-                                        address[i] = cdpMessage.Data[pos++];
-                                    }
-                                    switch (protocol)
-                                    {
-                                        case 0x00: // NLPID_NULL
-                                            sb.Append("\tNULL : ");
-                                            sb.Append("\n");
-                                            break;
-                                        case 0x08: // NLPID_Q933
-                                            sb.Append("\tQ933 : ");
-                                            sb.Append("\n");
-                                            break;
-                                        case 0x80: // NLPID_SNAP
-                                            sb.Append("\tSNAP : ");
-                                            sb.Append("\n");
-                                            break;
-                                        case 0x81: // NLPID_CLNP
-                                            sb.Append("\tCLPN : ");
-                                            sb.Append("\n");
-                                            break;
-                                        case 0x82: // NLPID_ESIS
-                                            sb.Append("\tESIS : ");
-                                            sb.Append("\n");
-                                            break;
-                                        case 0x83: // NLPID_ISIS				
-                                            sb.Append("\tISIS : ");
-                                            sb.Append("\n");
-                                            break;
-                                        case 0x8E: // NLPID_IPV6
-                                            sb.Append("\tIPV6 : ");
-                                            sb.Append("\n");
-                                            break;
-                                        case 0xB0: // NLPID_FRF9
-                                            sb.Append("\tFRF9 : ");
-                                            sb.Append("\n");
-                                            break;
-                                        case 0xB1: // NLPID_FRF12
-                                            sb.Append("\tFRF12 : ");
-                                            sb.Append("\n");
-                                            break;
-                                        case 0xC0: // NLPID_TRILL
-                                            sb.Append("\tTrill : ");
-                                            sb.Append("\n");
-                                            break;
-                                        case 0xC1: // NLPID_8021AQ			
-                                            sb.Append("\t8021AQ : ");
-                                            sb.Append("\n");
-                                            break;
-                                        case 0xCC: // NLPID_IPV4
-                                            sb.Append("\tIPV4 : " + byte2IPV4(address));
-                                            sb.Append("\n");
-                                            break;
-                                        case 0xCF: // NLPID_PPP			
-                                            sb.Append("\tPPP : ");
-                                            sb.Append("\n");
-                                            break;
-                                        default:
-                                            sb.Append("\tUnknown type : ");
-                                            sb.Append("\n");
-                                            break;
-                                    }
-                                    break;
-                                case 2:
-                                    break;
-                                default:
-                                    sb.Append("Cannot decode address, unknown protocol format");
-                                    break;
-                            }
-                        }
-                        sb.Append("\n");
+                        sb.Append("Addresses : ");
+                        sb.Append(decodeAddress("Addresses : ", cdpMessage.Data, cdpMessage.Size));
                         break;
                     case 0x0003:
-                        sb.Append("Port ID :\n\t" + Encoding.Default.GetString(cdpMessage.Data, 0, cdpMessage.Size) + "\n\n");
+                        sb.Append("Port ID : " + Encoding.Default.GetString(cdpMessage.Data, 0, cdpMessage.Size) + "\n\n");
                         break;
                     case 0x0004:
-                        sb.Append("Capabilities :" + "\n");
-                        for (int i = 0; i < cdpMessage.Size; i++)
                         {
-                            if (byteCmp(cdpMessage.Data[i], 0x01))
+                            string st = "\n" + new String(' ', 15);
+                            sb.Append("Capabilities : ");
+                            for (int i = 0; i < cdpMessage.Size; i++)
                             {
-                                sb.Append("\tPerforms level 3 routing for at least one network layer protocol.\n");
+                                if (byteCmp(cdpMessage.Data[i], 0x01))
+                                {
+                                    sb.Append("Performs level 3 routing for at least one network layer protocol." + st);
+                                }
+                                if (byteCmp(cdpMessage.Data[i], 0x02))
+                                {
+                                    sb.Append("Performs level 2 transparent bridging." + st);
+                                }
+                                if (byteCmp(cdpMessage.Data[i], 0x04))
+                                {
+                                    sb.Append("Performs level 2 source-route bridging." + st);
+                                }
+                                if (byteCmp(cdpMessage.Data[i], 0x08))
+                                {
+                                    sb.Append("Performs level 2 switching." + st);
+                                }
+                                if (byteCmp(cdpMessage.Data[i], 0x10))
+                                {
+                                    sb.Append("Sends and receives packets for at least one network layer protocol." + st);
+                                }
+                                if (byteCmp(cdpMessage.Data[i], 0x20))
+                                {
+                                    sb.Append("The bridge or switch does not forward IGMP." + st);
+                                }
+                                if (byteCmp(cdpMessage.Data[i], 0x40))
+                                {
+                                    sb.Append("Provides level 1 functionality." + st);
+                                }
                             }
-                            if (byteCmp(cdpMessage.Data[i], 0x02))
-                            {
-                                sb.Append("\tPerforms level 2 transparent bridging.\n");
-                            }
-                            if (byteCmp(cdpMessage.Data[i], 0x04))
-                            {
-                                sb.Append("\tPerforms level 2 source-route bridging.\n");
-                            }
-                            if (byteCmp(cdpMessage.Data[i], 0x08))
-                            {
-                                sb.Append("\tPerforms level 2 switching.\n");
-                            }
-                            if (byteCmp(cdpMessage.Data[i], 0x10))
-                            {
-                                sb.Append("\tSends and receives packets for at least one network layer protocol.\n");
-                            }
-                            if (byteCmp(cdpMessage.Data[i], 0x20))
-                            {
-                                sb.Append("\tThe bridge or switch does not forward IGMP.\n");
-                            }
-                            if (byteCmp(cdpMessage.Data[i], 0x40))
-                            {
-                                sb.Append("\tProvides level 1 functionality.\n");
-                            }
+                            sb.Append("\n");
                         }
-                        sb.Append("\n");
                         break;
                     case 0x0005:
                         sb.Append("Software version:\n\n" + Encoding.Default.GetString(cdpMessage.Data, 0, cdpMessage.Size) + "\n\n");
                         break;
                     case 0x0006:
-                        sb.Append("Platform:\n\t" + Encoding.Default.GetString(cdpMessage.Data, 0, cdpMessage.Size) + "\n\n");
+                        sb.Append("Platform: " + Encoding.Default.GetString(cdpMessage.Data, 0, cdpMessage.Size) + "\n\n");
                         break;
                     case 0x0007:
-                        sb.Append("IP Prefix :\n\t");
+                        sb.Append("IP Prefix : ");
+                        sb.Append(hexDump(new String(' ', 12), cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
-                        sb.Append("\n\n");
+                        sb.Append("\n");
                         break;
                     case 0x0008:
-                        sb.Append("Protocol Hello :\n\t");
+                        sb.Append("Protocol Hello : ");
+                        sb.Append(hexDump(new String(' ', 17), cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
-                        sb.Append("\n\n");
+                        sb.Append("\n");
                         break;
                     case 0x0009:
-                        sb.Append("VTP Domain :\n\t");
-                        // XXX TODO Decode Address
-                        sb.Append("\n\n");
+                        sb.Append("VTP Domain : " + Encoding.Default.GetString(cdpMessage.Data, 0, cdpMessage.Size) + "\n\n");
                         break;
                     case 0x000a:
-                        sb.Append("Native VLAN :\n\t");
-                        // XXX TODO Decode Address
-                        sb.Append("\n\n");
+                        UInt64 vlan = 0;
+                        sb.Append("Native VLAN : ");
+                        for(int i=0; i < cdpMessage.Size; i++) {
+                            vlan = (vlan << 8) | cdpMessage.Data[i];
+                        }
+                        
+                        sb.Append(vlan.ToString() + "\n\n");
                         break;
                     case 0x000b:
-                        sb.Append("Duplex :\n\t");
-                        // XXX TODO Decode Address
-                        sb.Append("\n\n");
+                        sb.Append("Duplex : ");
+                        if (cdpMessage.Data[0] == 0)
+                        {
+                            sb.Append("Half\n\n");
+                        }
+                        else
+                        {
+                            sb.Append("Full\n\n");
+                        }
                         break;
                     case 0x000e:
-                        sb.Append("VOIP Vlan Reply :\n\t");
+                        sb.Append("VOIP Vlan Reply : ");
+                        sb.Append(hexDump(new String(' ', 18), cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
                         sb.Append("\n\n");
                         break;
                     case 0x000f:
-                        sb.Append("VOIP Vlan Query :\n\t");
+                        sb.Append("VOIP Vlan Query : ");
+                        sb.Append(hexDump(new String(' ', 18), cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
                         sb.Append("\n\n");
                         break;
                     case 0x0010:
-                        sb.Append("Power :\n\t");
+                        sb.Append("Power : ");
+                        sb.Append(hexDump(new String(' ', 8), cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
                         sb.Append("\n\n");
                         break;
                     case 0x0011:
-                        sb.Append("MTU :\n\t");
+                        sb.Append("MTU : ");
+                        sb.Append(hexDump(new String(' ', 6), cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
                         sb.Append("\n\n");
                         break;
                     case 0x0012:
-                        sb.Append("Trust Bitmap :\n\t");
+                        sb.Append("Trust Bitmap : ");
+                        sb.Append(hexDump(new String(' ', 15), cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
                         sb.Append("\n\n");
                         break;
                     case 0x0013:
-                        sb.Append("Untrusted COS :\n\t");
+                        sb.Append("Untrusted COS : ");
+                        sb.Append(hexDump(new String(' ', 16), cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
                         sb.Append("\n\n");
                         break;
                     case 0x0014:
-                        sb.Append("System Name :\n\t");
-                        // XXX TODO Decode Address
-                        sb.Append("\n\n");
+                        sb.Append("System Name : " + Encoding.Default.GetString(cdpMessage.Data, 0, cdpMessage.Size) + "\n\n");
                         break;
                     case 0x0015:
-                        sb.Append("System ODI :\n\t");
+                        sb.Append("System ODI : ");
+                        sb.Append(hexDump(new String(' ', 13), cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
                         sb.Append("\n\n");
                         break;
                     case 0x0016:
-                        sb.Append("Management Address :\n\t");
-                        // XXX TODO Decode Address
+                        sb.Append(decodeAddress("Management Address : ", cdpMessage.Data, cdpMessage.Size));
                         sb.Append("\n\n");
                         break;
                     case 0x0017:
-                        sb.Append("Location :\n\t");
+                        sb.Append("Location : ");
+                        sb.Append(hexDump(new String(' ', 11), cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
                         sb.Append("\n\n");
                         break;
                     case 0x0018:
-                        sb.Append("External Port ID :\n\t");
+                        sb.Append("External Port ID : ");
+                        sb.Append(hexDump(new String(' ', 19), cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
                         sb.Append("\n\n");
                         break;
                     case 0x0019:
-                        sb.Append("Power Requested :\n\t");
+                        sb.Append("Power Requested : ");
+                        sb.Append(hexDump(new String(' ', 18), cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
                         sb.Append("\n\n");
                         break;
                     case 0x001a:
-                        sb.Append("Power Avalable :\n\t");
+                        sb.Append("Power Avalable : ");
+                        sb.Append(hexDump(new String(' ', 17), cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
                         sb.Append("\n\n");
                         break;
                     case 0x001b:
-                        sb.Append("Port Unidir :\n\t");
+                        sb.Append("Port Unidir : ");
+                        sb.Append(hexDump(new String(' ', 14), cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
                         sb.Append("\n\n");
                         break;
                     case 0x001d:
-                        sb.Append("NRGYZ :\n\t");
+                        sb.Append("NRGYZ : ");
+                        sb.Append(hexDump(new String(' ', 8), cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
                         sb.Append("\n\n");
                         break;
                     case 0x001f:
-                        sb.Append("Spare POE :\n\t");
+                        sb.Append("Spare POE : ");
+                        sb.Append(hexDump(new String(' ', 12), cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
                         sb.Append("\n\n");
                         break;
                     case 0x1003:
-                        sb.Append("Could someone tell me what this Type (0x1003) is? :\n\t");
+                        sb.Append("Could someone tell me what this Type (0x1003) is? :\n");
+                        sb.Append(hexDump("", cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
                         sb.Append("\n\n");
                         break;
                     default:
-                        sb.Append("Unknown Message (" + cdpMessage.Type.ToString() + ") :\n\t");
+                        sb.Append("Unknown Message (" + cdpMessage.Type.ToString() + ") :\n");
+                        sb.Append(hexDump("", cdpMessage.Data, cdpMessage.Size, 8));
                         // XXX TODO Decode Address
                         sb.Append("\n\n");
                         break;
