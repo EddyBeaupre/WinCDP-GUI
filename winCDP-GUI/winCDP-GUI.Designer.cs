@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(winCDP));
             this.adapterList = new System.Windows.Forms.ComboBox();
             this.startCapture = new System.Windows.Forms.Button();
             this.cdpCaptureWorker = new System.ComponentModel.BackgroundWorker();
@@ -35,15 +36,16 @@
             this.progressBarWorker = new System.ComponentModel.BackgroundWorker();
             this.AdapterAddress = new System.Windows.Forms.ListBox();
             this.showResults = new System.Windows.Forms.RichTextBox();
+            this.label1 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // adapterList
             // 
             this.adapterList.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.adapterList.FormattingEnabled = true;
-            this.adapterList.Location = new System.Drawing.Point(13, 13);
+            this.adapterList.Location = new System.Drawing.Point(117, 13);
             this.adapterList.Name = "adapterList";
-            this.adapterList.Size = new System.Drawing.Size(559, 21);
+            this.adapterList.Size = new System.Drawing.Size(455, 21);
             this.adapterList.TabIndex = 0;
             this.adapterList.SelectedValueChanged += new System.EventHandler(this.adapterList_SelectedValueChanged);
             // 
@@ -86,6 +88,7 @@
             this.AdapterAddress.Location = new System.Drawing.Point(13, 40);
             this.AdapterAddress.Name = "AdapterAddress";
             this.AdapterAddress.Size = new System.Drawing.Size(559, 30);
+            this.AdapterAddress.Sorted = true;
             this.AdapterAddress.TabIndex = 16;
             // 
             // showResults
@@ -99,20 +102,33 @@
             this.showResults.Text = "";
             this.showResults.TextChanged += new System.EventHandler(this.showResults_TextChanged);
             // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(13, 16);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(98, 13);
+            this.label1.TabIndex = 18;
+            this.label1.Text = "Network Interface :";
+            this.label1.Click += new System.EventHandler(this.label1_Click);
+            // 
             // winCDP
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(584, 362);
+            this.Controls.Add(this.label1);
             this.Controls.Add(this.showResults);
             this.Controls.Add(this.AdapterAddress);
             this.Controls.Add(this.startCapture);
             this.Controls.Add(this.adapterList);
             this.Controls.Add(this.progressBar);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "winCDP";
-            this.Text = "Form1";
+            this.Text = "winCDP";
             this.Load += new System.EventHandler(this.winCDP_Load);
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
@@ -125,6 +141,7 @@
         private System.ComponentModel.BackgroundWorker progressBarWorker;
         private System.Windows.Forms.ListBox AdapterAddress;
         private System.Windows.Forms.RichTextBox showResults;
+        private System.Windows.Forms.Label label1;
     }
 }
 

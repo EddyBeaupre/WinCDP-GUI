@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -299,6 +300,10 @@ namespace winCDP_GUI
 
         private string byte2IPV6(byte[] s)
         {
+            IPAddress ipv6 = new IPAddress(s);
+
+            return ipv6.ToString();
+            /*
             int pos = 0;
             return "IPV6 : " + (s[pos++] << 8 | s[pos++]).ToString("X4") + ":" +
                 (s[pos++] << 8 | s[pos++]).ToString("X4") + ":" +
@@ -308,13 +313,24 @@ namespace winCDP_GUI
                 (s[pos++] << 8 | s[pos++]).ToString("X4") + ":" +
                 (s[pos++] << 8 | s[pos++]).ToString("X4") + ":" +
                 (s[pos++] << 8 | s[pos++]).ToString("X4") + ":";
+             */
         }
 
         private string byte2IPV4(byte[] s)
         {
+            IPAddress ipv4 = new IPAddress(s);
+
+            return ipv4.ToString();
+            /*
             int pos = 0;
-            return "IPV4 : " + s[pos++].ToString("d") + "." + s[pos++].ToString("d") + "." + s[pos++].ToString("d") + "." + s[pos++].ToString("d");
+            return "IPV4 : " + s[pos++].ToString("d") + "." +
+                s[pos++].ToString("d") + "." +
+                s[pos++].ToString("d") + "." +
+                s[pos++].ToString("d");
+             */
         }
+
+        
 
         private string nlpid2String(UInt64 protocol, byte[] address, int address_length)
         {
@@ -529,13 +545,15 @@ namespace winCDP_GUI
                         sb.Append("VTP Domain : " + Encoding.Default.GetString(cdpMessage.Data, 0, cdpMessage.Size) + "\n\n");
                         break;
                     case 0x000a:
-                        UInt64 vlan = 0;
-                        sb.Append("Native VLAN : ");
-                        for(int i=0; i < cdpMessage.Size; i++) {
-                            vlan = (vlan << 8) | cdpMessage.Data[i];
+                        {
+                            UInt64 vlan = 0;
+                            sb.Append("Native VLAN : ");
+                            for (int i = 0; i < cdpMessage.Size; i++)
+                            {
+                                vlan = (vlan << 8) | cdpMessage.Data[i];
+                            }
+                            sb.Append(vlan.ToString() + "\n\n");
                         }
-                        
-                        sb.Append(vlan.ToString() + "\n\n");
                         break;
                     case 0x000b:
                         sb.Append("Duplex : ");
@@ -549,10 +567,23 @@ namespace winCDP_GUI
                         }
                         break;
                     case 0x000e:
-                        sb.Append("VOIP Vlan Reply : ");
-                        sb.Append(hexDump(new String(' ', 18), cdpMessage.Data, cdpMessage.Size, 8));
-                        // XXX TODO Decode Address
-                        sb.Append("\n\n");
+                        {
+                            int index = cdpMessage.Data[0], count = 0;
+                            sb.Append("VOIP Vlan : ");
+
+                            for (int i = 1; i < cdpMessage.Size; i += 2)
+                            {
+                                int vlan = 0;
+                                count++;
+                                vlan = (cdpMessage.Data[i] << 8) | cdpMessage.Data[i + 1];
+                                sb.Append(vlan.ToString());
+                                if (count < index)
+                                {
+                                    sb.Append(", ");
+                                }
+                            }
+                            sb.Append("\n\n");
+                        }
                         break;
                     case 0x000f:
                         sb.Append("VOIP Vlan Query : ");

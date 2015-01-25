@@ -31,6 +31,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>cisco.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="PcapDotNet.Base">
       <HintPath>..\PcapDotNet\x86\PcapDotNet.Base.dll</HintPath>
@@ -98,6 +101,9 @@
       <Project>{d1bf6acc-be80-4478-b715-3ca174cef119}</Project>
       <Name>FlexFieldControlLib</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="cisco.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
